@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>L.S.M.S. | Portail Médical V2.0</title>
+    <img src="image/fairylifems.png" width="5%">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;900&family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root { --primary: #ef4444; --bg: #0f172a; --panel: #1e293b; --text: #f1f5f9; --border: #334155; --discord: #5865f2; --success: #10b981; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
+        body { background: var(--bg); color: var(--text); padding: 10px; }
+        header { background: #0f172a; padding: 15px 25px; border-bottom: 3px solid var(--primary); display: flex; justify-content: space-between; align-items: center; border-radius: 10px 10px 0 0; }
+        #real-clock { font-family: 'Orbitron'; font-weight: 900; color: var(--primary); font-size: 1.2rem; }
+        nav { background: var(--panel); display: flex; flex-wrap: wrap; border-bottom: 1px solid var(--border); }
+        .nav-link { padding: 12px 18px; border: none; background: none; color: #94a3b8; font-weight: 800; cursor: pointer; text-transform: uppercase; font-size: 0.7rem; transition: 0.2s; border-bottom: 3px solid transparent; }
+        .nav-link.active { color: var(--primary); border-bottom-color: var(--primary); background: rgba(239, 68, 68, 0.1); }
+        .reset-btn { background: #dc2626; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-weight: 900; margin: 10px; }
+        .content { padding: 20px; background: var(--panel); border-radius: 0 0 10px 10px; }
+        .tab-pane { display: none; }
+        .tab-pane.active { display: block; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; margin-bottom: 20px; }
+        .field { display: flex; flex-direction: column; gap: 5px; margin-bottom: 12px; }
+        label { font-weight: 700; font-size: 0.75rem; text-transform: uppercase; color: var(--primary); }
+        input, select, textarea { padding: 10px; background: #0f172a; border: 1px solid var(--border); border-radius: 6px; color: white; width: 100%; font-size: 0.9rem; }
+        .skel-container { background: #0a0f1e; padding: 15px; border-radius: 10px; text-align: center; border: 1px solid var(--border); }
+        .skel-svg { height: 280px; }
+        .body-part { fill: #2d3748; stroke: #4a5568; cursor: pointer; }
+        .body-part.selected { fill: var(--primary); stroke: white; }
+        .btn-discord { background: var(--discord); color: white; border: none; padding: 15px; border-radius: 8px; font-weight: 900; cursor: pointer; width: 100%; text-transform: uppercase; margin-top: 20px; font-size: 1rem; transition: 0.3s; }
+        .btn-discord:hover { filter: brightness(1.2); transform: translateY(-2px); }
+        .output { background: #000; color: #10b981; padding: 20px; border-radius: 8px; margin-top: 20px; white-space: pre-wrap; display: none; font-family: monospace; border: 1px solid #10b981; font-size: 0.8rem; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="logo" style="font-family:Orbitron; font-weight:900;">🚑 L.S.M.S. <span style="color:var(--primary)">Base De Donnée Médicale v2.0</span></div>
+        <div id="real-clock">00:00:00</div>
+    </header>
+
+    <nav>
+        <button class="nav-link active" onclick="tab(this, 't-facture')">Facturation</button>
+        <button class="nav-link" onclick="tab(this, 't-chirurgie')">Chirurgie</button>
+        <button class="nav-link" onclick="tab(this, 't-autopsie')">Autopsie</button>
+        <button class="nav-link" onclick="tab(this, 't-consults')">Consultations</button>
+        <button class="nav-link" onclick="tab(this, 't-arret')">Arrêt de Travail</button>
+        <button class="nav-link" onclick="tab(this, 't-dossier')">Dossier Patient</button>
+        <button class="nav-link" onclick="tab(this, 't-audit')">Audit Sanitaire</button>
+        <button class="reset-btn" onclick="location.reload()">👤 PATIENT SUIVANT</button>
+    </nav>
+
+    <div class="content">
+
+        <div id="t-facture" class="tab-pane active">
+            <div id="f-fdo-alert" style="background:red; color:white; text-align:center; padding:10px; display:none; margin-bottom:15px; font-weight:bold; border-radius:5px;">🚨 ALERTE FDO : SIGNALEMENT OBLIGATOIRE</div>
+            <div class="grid">
+                <div>
+                    <div class="field"><label>Nom du Patient</label><input type="text" id="f-nom" oninput="sync(this.value, 'nom')"></div>
+                    <div class="field"><label>Nom du Médecin</label><input type="text" id="f-med" oninput="sync(this.value, 'med')"></div>
+                    <div class="field"><label>Prise en charge</label>
+                        <select id="f-lieu" onchange="toggleZip(this.value, 'f-zip-wrap')">
+                            <option value="Hôpital">Hôpital</option><option value="Extérieur">Extérieur</option>
+                        </select>
+                    </div>
+                    <div id="f-zip-wrap" class="field" style="display:none;"><label>Code ZIP GPS</label><input type="text" id="f-zip"></div>
+                </div>
+                <div class="skel-container">
+                    <label>Zones de blessures</label><br><br>
+                    <svg class="skel-svg" viewBox="0 0 100 200">
+                        <circle class="body-part" id="f-Tete" cx="50" cy="22" r="16" onclick="tk('f','Tete')"/>
+                        <rect class="body-part" id="f-Torse" x="32" y="42" width="36" height="55" rx="5" onclick="tk('f','Torse')"/>
+                        <rect class="body-part" id="f-BrasG" x="12" y="45" width="16" height="65" rx="5" onclick="tk('f','BrasG')"/>
+                        <rect class="body-part" id="f-BrasD" x="72" y="45" width="16" height="65" rx="5" onclick="tk('f','BrasD')"/>
+                        <rect class="body-part" id="f-JambeG" x="33" y="102" width="14" height="85" rx="5" onclick="tk('f','JambeG')"/>
+                        <rect class="body-part" id="f-JambeD" x="53" y="102" width="14" height="85" rx="5" onclick="tk('f','JambeD')"/>
+                    </svg>
+                </div>
+                <div>
+                    <div class="field"><label>Nature</label>
+                        <select id="f-nature" onchange="checkFDO(this.value, 'f-fdo-alert')">
+                            <option value="Accident">Accident</option><option value="Malaise">Malaise</option>
+                            <option value="Balle">Blessures par balles</option><option value="Blanche">Blessures arme blanche</option>
+                        </select>
+                    </div>
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                        <label><input type="checkbox" id="f-tension"> Tension</label>
+                        <label><input type="checkbox" id="f-conscient"> Conscient</label>
+                        <label><input type="checkbox" id="f-inconscient"> Inconscient</label>
+                        <input type="text" id="f-temp" placeholder="Température °C">
+                    </div>
+                </div>
+            </div>
+            <div id="bill-items"></div>
+            <button onclick="addBillRow()" style="padding:10px; background:var(--border); color:white; border:none; border-radius:5px; cursor:pointer; margin-bottom:15px;">+ Ajouter acte médical</button>
+            <div style="background:#0f172a; padding:20px; border-radius:10px; border-left:5px solid var(--primary);">
+                <label style="color:var(--success); font-weight:bold; cursor:pointer;"><input type="checkbox" id="f-rude" onchange="calcTotal()"> 😤 Impolitesse envers EMS (x2)</label>
+                <div style="font-size:1.8rem; margin-top:10px; font-family:Orbitron;">TOTAL : <span id="f-total-display">0</span> $</div>
+            </div>
+            <div class="field" style="margin-top:15px;"><label>Observations</label><textarea id="f-obs"></textarea></div>
+            <button class="btn-discord" onclick="genDiscord('facture')">GÉNÉRER & COPIER FACTURE</button>
+        </div>
+
+        <div id="t-chirurgie" class="tab-pane">
+            <div class="grid">
+                <div>
+                    <div class="field"><label>Patient</label><input type="text" id="s-nom" readonly></div>
+                    <div class="field"><label>Médecin / Grade</label>
+                        <select id="s-grade">
+                            <option>Docteur Chirurgien</option><option>Directrice</option><option>Co-Directeur</option>
+                            <option>Chef Service Mortuaire</option><option>Chef du Service des Urgences</option><option>Chef de Pôle Psychologique</option>
+                        </select>
+                        <input type="text" id="s-med" readonly style="margin-top:5px;">
+                    </div>
+                    <div class="field"><label>Date & Heures</label>
+                        <div style="display:flex; gap:5px;"><input type="date" id="s-date"><input type="time" id="s-h-deb"><input type="time" id="s-h-fin"></div>
+                    </div>
+                </div>
+                <div class="skel-container">
+                    <label>Zones opérées</label><br><br>
+                    <svg class="skel-svg" viewBox="0 0 100 200">
+                        <circle class="body-part" id="s-Tete" cx="50" cy="22" r="16" onclick="tk('s','Tete')"/>
+                        <rect class="body-part" id="s-Torse" x="32" y="42" width="36" height="55" rx="5" onclick="tk('s','Torse')"/>
+                        <rect class="body-part" id="s-BrasG" x="12" y="45" width="16" height="65" rx="5" onclick="tk('s','BrasG')"/>
+                        <rect class="body-part" id="s-BrasD" x="72" y="45" width="16" height="65" rx="5" onclick="tk('s','BrasD')"/>
+                        <rect class="body-part" id="s-JambeG" x="33" y="102" width="14" height="85" rx="5" onclick="tk('s','JambeG')"/>
+                        <rect class="body-part" id="s-JambeD" x="53" y="102" width="14" height="85" rx="5" onclick="tk('s','JambeD')"/>
+                    </svg>
+                </div>
+                <div>
+                    <div class="field"><label>Nature Initiale</label>
+                        <select id="s-nature">
+                            <option value="Accident">Accident</option><option value="Malaise">Malaise</option>
+                            <option value="Balle">Blessures par balles</option><option value="Blanche">Blessures arme blanche</option>
+                        </select>
+                    </div>
+                    <div class="field"><label>Statut Sortie</label>
+                        <label><input type="radio" name="s-statut" value="Reste en observation à l'hôpital"> Reste en observation</label>
+                        <label><input type="radio" name="s-statut" value="Bon pour sortir de l'hôpital"> Bon pour sortir</label>
+                    </div>
+                    <div class="field"><label>Observations Post-Opératoires</label><textarea id="s-obs" style="height:100px;"></textarea></div>
+                </div>
+            </div>
+            <button class="btn-discord" onclick="genDiscord('chirurgie')">GÉNÉRER RAPPORT CHIRURGIE</button>
+        </div>
+
+        <div id="t-autopsie" class="tab-pane">
+            <div class="grid">
+                <div>
+                    <div class="field"><label>Nom du Défunt</label><input type="text" id="a-nom"></div>
+                    <div class="field"><label>Légiste & Assistants</label><input type="text" id="a-med"><input type="text" id="a-assist" style="margin-top:5px;" placeholder="Nom(s) des assistants"></div>
+                    <div class="field"><label>Date du décès</label><input type="date" id="a-date"></div>
+                    <div class="field"><label>Autopsie (Début / Fin)</label><div style="display:flex; gap:5px;"><input type="time" id="a-h-deb"><input type="time" id="a-h-fin"></div></div>
+                </div>
+                <div class="skel-container">
+                    <label>Zones de blessures constatées</label><br><br>
+                    <svg class="skel-svg" viewBox="0 0 100 200">
+                        <circle class="body-part" id="a-Tete" cx="50" cy="22" r="16" onclick="tk('a','Tete')"/>
+                        <rect class="body-part" id="a-Torse" x="32" y="42" width="36" height="55" rx="5" onclick="tk('a','Torse')"/>
+                        <rect class="body-part" id="a-BrasG" x="12" y="45" width="16" height="65" rx="5" onclick="tk('a','BrasG')"/>
+                        <rect class="body-part" id="a-BrasD" x="72" y="45" width="16" height="65" rx="5" onclick="tk('a','BrasD')"/>
+                        <rect class="body-part" id="a-JambeG" x="33" y="102" width="14" height="85" rx="5" onclick="tk('a','JambeG')"/>
+                        <rect class="body-part" id="a-JambeD" x="53" y="102" width="14" height="85" rx="5" onclick="tk('a','JambeD')"/>
+                    </svg>
+                </div>
+                <div>
+                    <div class="field"><label>Nature du décès</label>
+                        <select id="a-nature">
+                            <option>Accident</option><option>Malaise</option><option>Blessures par balles</option><option>Blessures arme blanche</option>
+                        </select>
+                    </div>
+                    <div class="field"><label>Famille Prévenue ?</label>
+                        <label><input type="checkbox" onchange="document.getElementById('a-ice-wrap').style.display=this.checked?'block':'none'"> Oui</label>
+                        <div id="a-ice-wrap" style="display:none; margin-top:5px;"><input type="text" id="a-ice-name" placeholder="Nom Prénom du contact"></div>
+                    </div>
+                    <div class="field"><label>Observations</label><textarea id="a-obs" style="height:80px;"></textarea></div>
+                </div>
+            </div>
+            <div class="field"><label>Détails / Grande zone de texte</label><textarea id="a-large" style="height:120px;"></textarea></div>
+            <button class="btn-discord" onclick="genDiscord('autopsie')">GÉNÉRER RAPPORT AUTOPSIE</button>
+        </div>
+
+        <div id="t-consults" class="tab-pane">
+            <div class="field"><label>Type de Consultation</label>
+                <select id="cons-type" onchange="showCons(this.value)">
+                    <option value="c-gen">Médecine Générale</option>
+                    <option value="c-psy1">Première Consultation Psychologique</option>
+                    <option value="c-psys">Consultation Psychologique Suivie</option>
+                    <option value="c-apt">Aptitude à Reprise du travail</option>
+                </select>
+            </div>
+
+            <div id="c-gen" class="cons-sub">
+                <div class="grid">
+                    <div class="field"><label>Motif de la consultation</label><input type="text" id="cg-motif"></div>
+                    <div class="field"><label>Début / Fin</label><div style="display:flex; gap:5px;"><input type="time" id="cg-h1"><input type="time" id="cg-h2"></div></div>
+                </div>
+                <div class="field"><label>Examens (Cochez si effectué)</label>
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                        <label><input type="checkbox" id="chk-irm" onchange="toggleEx('cg-irm', this.checked)"> IRM / Scanner</label>
+                        <label><input type="checkbox" id="chk-rad" onchange="toggleEx('cg-rad', this.checked)"> Radiographie</label>
+                        <label><input type="checkbox" id="chk-ech" onchange="toggleEx('cg-ech', this.checked)"> Echographie</label>
+                        <label><input type="checkbox" id="chk-lab" onchange="toggleEx('cg-lab', this.checked)"> Analyse labo</label>
+                    </div>
+                    <div id="cg-results" style="margin-top:10px;">
+                        <textarea id="cg-irm" style="display:none; margin-bottom:5px;" placeholder="Résultats IRM/Scanner"></textarea>
+                        <textarea id="cg-rad" style="display:none; margin-bottom:5px;" placeholder="Résultats Radio"></textarea>
+                        <textarea id="cg-ech" style="display:none; margin-bottom:5px;" placeholder="Résultats Echo"></textarea>
+                        <textarea id="cg-lab" style="display:none; margin-bottom:5px;" placeholder="Résultats Labo"></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <div id="c-psy1" class="cons-sub" style="display:none;">
+                <div class="field"><label>Motif</label><input type="text" id="cp1-motif"></div>
+                <div class="field"><label>Début / Fin</label><div style="display:flex; gap:5px;"><input type="time" id="cp1-h1"><input type="time" id="cp1-h2"></div></div>
+                <div class="field"><label>Vécu du patient</label><textarea id="cp1-vecu"></textarea></div>
+                <div class="field"><label>Recommandations médicales</label><textarea id="cp1-reco"></textarea></div>
+                <label><input type="checkbox" id="cp1-next-check" onchange="document.getElementById('cp1-next-date').style.display=this.checked?'block':'none'"> Nouveau rendez-vous nécessaire</label>
+                <input type="date" id="cp1-next-date" style="display:none; margin-top:5px;">
+            </div>
+
+            <div id="c-psys" class="cons-sub" style="display:none;">
+                <div class="field"><label>Début / Fin</label><div style="display:flex; gap:5px;"><input type="time" id="cps-h1"><input type="time" id="cps-h2"></div></div>
+                <div class="field"><label>Date de la dernière consultation</label><input type="date" id="cps-last"></div>
+                <div class="field"><label>État du patient depuis dernier RDV</label><textarea id="cps-etat"></textarea></div>
+                <div class="field"><label>Points sur les conseils donnés</label><textarea id="cps-conseils"></textarea></div>
+                <div class="field"><label>Action</label>
+                    <label><input type="radio" name="cps-action" value="Renforcer le suivi"> Renforcer le suivi</label>
+                    <label><input type="radio" name="cps-action" value="Continuer l'action telle qu'elle"> Continuer l'action telle qu'elle</label>
+                </div>
+                <div class="field"><label>Nouvelle date de rendez-vous</label><input type="date" id="cps-next"></div>
+            </div>
+
+            <div id="c-apt" class="cons-sub" style="display:none;">
+                <div class="field"><label>Début / Fin</label><div style="display:flex; gap:5px;"><input type="time" id="ca-h1"><input type="time" id="ca-h2"></div></div>
+                <div class="field"><label>Date et motif de l'arrêt initial</label><input type="text" id="ca-motif-stop"></div>
+                <div class="field"><label>Décision</label>
+                    <label><input type="radio" name="ca-dec" value="Valide" onchange="toggleZip('val','ca-res-v')"> Reprise valide</label>
+                    <label><input type="radio" name="ca-dec" value="Non Valide" onchange="toggleZip('val','ca-res-n')"> Reprise non valide</label>
+                </div>
+                <div id="ca-res-v" style="display:none;"><label>Date et heure de reprise :</label><input type="datetime-local" id="ca-v-date"></div>
+                <div id="ca-res-n" style="display:none;"><label>Nouvelle date de visite :</label><input type="datetime-local" id="ca-n-date"></div>
+            </div>
+
+            <div class="field" style="margin-top:10px;"><label>Zone d'observations générales</label><textarea id="cons-obs"></textarea></div>
+            <button class="btn-discord" onclick="genDiscord('consultation')">GÉNÉRER FORMULAIRE CONSULTATION</button>
+        </div>
+
+        <div id="t-arret" class="tab-pane">
+            <div class="grid">
+                <div>
+                    <div class="field"><label>Nom du Patient</label><input type="text" id="w-nom" readonly></div>
+                    <div class="field"><label>Fonction & Entreprise</label><input type="text" id="w-fonc"></div>
+                    <div class="field"><label>Médecin & Grade</label><input type="text" id="w-med-grade"></div>
+                </div>
+                <div>
+                    <div class="field"><label>Date de prise en charge</label><input type="date" id="w-date-pc"></div>
+                    <div class="field"><label>Période d'arrêt (Début / Fin)</label><div style="display:flex; gap:5px;"><input type="date" id="w-d1"><input type="date" id="w-d2"></div></div>
+                    <div class="field"><label>Heure de début d'arrêt</label><input type="time" id="w-h-start"></div>
+                </div>
+            </div>
+            <div class="field"><label>Observations médicales motivant l'arrêt</label><textarea id="w-obs" style="height:100px;"></textarea></div>
+            <label><input type="checkbox" id="w-reprise-check" onchange="document.getElementById('w-reprise-wrap').style.display=this.checked?'block':'none'"> Visite de reprise obligatoire</label>
+            <div id="w-reprise-wrap" style="display:none; margin-top:5px;"><label>Date et Heure :</label><input type="datetime-local" id="w-reprise-date"></div>
+            <button class="btn-discord" onclick="genDiscord('arret')">GÉNÉRER ARRÊT DE TRAVAIL</button>
+        </div>
+
+        <div id="t-audit" class="tab-pane">
+            <div class="grid">
+                <div>
+                    <div class="field"><label>Nom de l'entreprise</label><input type="text" id="au-ent"></div>
+                    <div class="field"><label>Nom de la personne (Contact)</label><input type="text" id="au-pers"></div>
+                    <div class="field"><label>Référent Sanitaire de l'audit</label><input type="text" id="au-ref"></div>
+                    <div class="field"><label>Accompagnants du médecin</label><input type="text" id="au-acc"></div>
+                </div>
+                <div>
+                    <div class="field"><label>Motif de la visite</label><input type="text" id="au-motif"></div>
+                    <label>Notes sur 10 :</label>
+                    <div style="display:flex; flex-direction:column; gap:8px; margin-top:5px;">
+                        <input type="number" id="au-n1" placeholder="Hygiène /10" min="0" max="10" oninput="calcAudit()">
+                        <input type="number" id="au-n2" placeholder="Sécurité /10" min="0" max="10" oninput="calcAudit()">
+                        <input type="number" id="au-n3" placeholder="Conditions de travail /10" min="0" max="10" oninput="calcAudit()">
+                        <div style="font-size:1.4rem; color:var(--success); font-weight:bold; background:#0f172a; padding:10px; border-radius:5px; text-align:center;">
+                            MOYENNE : <span id="au-moy">0</span>/10
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="field"><label>Témoignages</label><textarea id="au-tem"></textarea></div>
+            <div class="field"><label>Annotations des auditeurs</label><textarea id="au-obs"></textarea></div>
+            <button class="btn-discord" onclick="genDiscord('audit')">GÉNÉRER RAPPORT AUDIT</button>
+        </div>
+
+        <div id="t-dossier" class="tab-pane">
+            <div class="grid">
+                <div>
+                    <div class="field"><label>Civilité</label>
+                        <div style="display:flex; gap:20px;"><label><input type="radio" name="d-civ" value="Homme"> Homme</label><label><input type="radio" name="d-civ" value="Femme"> Femme</label></div>
+                    </div>
+                    <div class="field"><label>Nom / Prénom</label><input type="text" id="d-nom-v" oninput="sync(this.value, 'nom')"><input type="text" id="d-pre" style="margin-top:5px;" placeholder="Prénom"></div>
+                    <div class="field"><label>Données Physiques</label>
+                        <div style="display:flex; gap:5px;">
+                            <input type="number" id="d-age" placeholder="Age">
+                            <input type="number" id="d-taille" placeholder="cm">
+                            <input type="number" id="d-poids" placeholder="kg">
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <div class="field"><label>Groupe Sanguin</label><select id="d-sang"><option>A+</option><option>A-</option><option>B+</option><option>B-</option><option>O+</option><option>O-</option><option>AB+</option><option>AB-</option></select></div>
+                    <div class="field"><label>Téléphone Patient</label><input type="text" id="d-tel"></div>
+                    <div class="field"><label>Contact Urgence</label><input type="text" id="d-ice-n" placeholder="Nom Prénom"><input type="text" id="d-ice-t" style="margin-top:5px;" placeholder="Téléphone"></div>
+                </div>
+            </div>
+            <div class="field"><label>Allergies</label><input type="text" id="d-allergies"></div>
+            <div class="field"><label>Antécédents médicaux / psychologiques</label><textarea id="d-ante" style="height:80px;"></textarea></div>
+            <div class="field"><label>Autres observations</label><textarea id="d-obs" style="height:80px;"></textarea></div>
+            <div style="background:#0f172a; padding:15px; border-left:4px solid var(--success); font-weight:bold; color:var(--success);">FACTURATION AUTOMATIQUE : 300 $</div>
+            <button class="btn-discord" onclick="genDiscord('dossier')">GÉNÉRER CRÉATION DOSSIER</button>
+        </div>
+
+        <pre id="output" class="output"></pre>
+    </div>
+
+    <script>
+        const PRICES = {
+            "Soins": { "Soins (bandage/kit/pansements/compresse)": 2000, "Médicaments urgences (adrénaline/morphine)": 500, "Solutions de perfusions": 500, "Transfusions sanguine": 500, "RCP": 625, "Malaise": 1625 },
+            "Imagerie": { "IRM / Scanner": 1800, "Radio": 950, "Echographie": 950 },
+            "Consultations": { "Médicale générale": 300, "Esthétique": 450, "Visite Médicale": 375, "Aptitude pro/sportive": 500, "Grossesse": 500 },
+            "Chirurgie": { "Intervention légère": 2000, "Intervention modérée": 4000, "Intervention lourde": 6000, "Chirurgie esthétique": 1500 },
+            "Administratif": { "Transport Médicale": 425, "Chambre d'hospitalisation": 450, "Création dossier": 300, "Analyse de labo": 500 },
+            "Psychologie": { "1ère consultation": 500, "Consultation suivi": 1000, "Psy PPA": 15000 },
+            "Prescriptions": { "Médicaments": 175, "Plâtre / Attèle": 150, "Fauteuil roulant": 250, "Béquille": 150 }
+        };
+
+        let activeParts = { f: new Set(), s: new Set(), a: new Set() };
+
+        setInterval(() => { 
+            document.getElementById('real-clock').innerText = new Date().toLocaleTimeString('fr-FR', {timeZone: 'Europe/Paris'}); 
+        }, 1000);
+
+        function tab(btn, id) {
+            document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+            document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+            btn.classList.add('active'); 
+            document.getElementById(id).classList.add('active');
+        }
+
+        function tk(prefix, part) {
+            activeParts[prefix].has(part) ? activeParts[prefix].delete(part) : activeParts[prefix].add(part);
+            document.getElementById(`${prefix}-${part}`).classList.toggle('selected');
+        }
+
+        function toggleZip(val, id) { document.getElementById(id).style.display = (val === 'Extérieur' || val === 'val') ? 'block' : 'none'; }
+        function toggleEx(id, show) { document.getElementById(id).style.display = show ? 'block' : 'none'; }
+        function showCons(val) { document.querySelectorAll('.cons-sub').forEach(p => p.style.display = 'none'); document.getElementById(val).style.display = 'block'; }
+        function checkFDO(v, id) { document.getElementById(id).style.display = (v === 'Balle' || v === 'Blanche') ? 'block' : 'none'; }
+        
+        function sync(val, type) {
+            if(type === 'nom') {
+                ['f-nom','s-nom','a-nom','w-nom','d-nom-v'].forEach(id => { if(document.getElementById(id)) document.getElementById(id).value = val; });
+            }
+            if(type === 'med') {
+                ['f-med','s-med','a-med'].forEach(id => { if(document.getElementById(id)) document.getElementById(id).value = val; });
+            }
+        }
+
+        function addBillRow() {
+            const id = Date.now();
+            const row = document.createElement('div');
+            row.id = `row-${id}`;
+            row.style = "display:flex; gap:10px; margin-bottom:5px;";
+            let opts = '<option value="0">-- Choisir un acte --</option>';
+            for(let cat in PRICES) {
+                opts += `<optgroup label="${cat}">`;
+                for(let i in PRICES[cat]) opts += `<option value="${PRICES[cat][i]}">${i} (${PRICES[cat][i]}$)</option>`;
+                opts += `</optgroup>`;
+            }
+            row.innerHTML = `<select onchange="calcTotal()" style="flex:3">${opts}</select><input type="number" value="1" min="1" oninput="calcTotal()" style="flex:1"><button onclick="this.parentElement.remove();calcTotal()" style="background:red; border:none; color:white; border-radius:5px; cursor:pointer; padding:5px 10px;">✖</button>`;
+            document.getElementById('bill-items').appendChild(row);
+        }
+
+        function calcTotal() {
+            let t = 0; 
+            document.querySelectorAll('#bill-items div').forEach(r => { 
+                t += (parseFloat(r.querySelector('select').value) * parseFloat(r.querySelector('input').value)); 
+            });
+            if(document.getElementById('f-rude').checked) t *= 2;
+            document.getElementById('f-total-display').innerText = t;
+        }
+
+        function calcAudit() {
+            let n1 = parseFloat(document.getElementById('au-n1').value) || 0;
+            let n2 = parseFloat(document.getElementById('au-n2').value) || 0;
+            let n3 = parseFloat(document.getElementById('au-n3').value) || 0;
+            document.getElementById('au-moy').innerText = ((n1+n2+n3)/3).toFixed(1);
+        }
+
+        function genDiscord(type) {
+            let t = "";
+            const nom = document.getElementById('f-nom').value || "Inconnu";
+            const med = document.getElementById('f-med').value || "Non spécifié";
+
+            if(type === 'facture') {
+                const fdo = document.getElementById('f-fdo-alert').style.display === 'block' ? "🚨 **ALERTE FDO : SIGNALEMENT EFFECTUÉ**\n" : "";
+                t = `>>> **[FACTURE L.S.M.S.]**\n${fdo}**Patient :** ${nom}\n**Médecin :** ${med}\n**Prise en charge :** ${document.getElementById('f-lieu').value} ${document.getElementById('f-zip').value ? '(ZIP: '+document.getElementById('f-zip').value+')' : ''}\n**État :** ${document.getElementById('f-conscient').checked ? 'Conscient' : 'Inconscient'} | Temp: ${document.getElementById('f-temp').value || 'N/A'}°C\n**Zones :** ${Array.from(activeParts.f).join(', ') || 'Aucune'}\n**Nature :** ${document.getElementById('f-nature').value}\n\n**DÉTAILS DES SOINS :**\n`;
+                document.querySelectorAll('#bill-items div').forEach(r => { 
+                    let s = r.querySelector('select'); if(s.value != "0") t += `• ${s.options[s.selectedIndex].text} x${r.querySelector('input').value}\n`;
+                });
+                t += `\n💰 **TOTAL À RÉGLER : ${document.getElementById('f-total-display').innerText} $**\n**Note :** ${document.getElementById('f-obs').value || '/'}`;
+            }
+
+            if(type === 'chirurgie') {
+                const fdo = (document.getElementById('s-nature').value === 'Balle' || document.getElementById('s-nature').value === 'Blanche') ? "🚨 **ALERTE FDO EFFECTUÉE**\n" : "";
+                t = `>>> **[RAPPORT DE CHIRURGIE]**\n${fdo}**Patient :** ${nom}\n**Chirurgien :** ${document.getElementById('s-grade').value} - ${med}\n**Intervention :** ${document.getElementById('s-date').value} (${document.getElementById('s-h-deb').value} à ${document.getElementById('s-h-fin').value})\n**Zones :** ${Array.from(activeParts.s).join(', ') || 'N/A'}\n**Nature :** ${document.getElementById('s-nature').value}\n**Facture :** ${document.getElementById('f-total-display').innerText} $\n**Statut :** ${document.querySelector('input[name="s-statut"]:checked')?.value || '/'}\n**Observations :** ${document.getElementById('s-obs').value}`;
+            }
+
+            if(type === 'autopsie') {
+                t = `>>> **[RAPPORT AUTOPSIE / MÉDECINE LÉGALE]**\n**Défunt :** ${document.getElementById('a-nom').value}\n**Légiste :** ${document.getElementById('a-med').value}\n**Assistant(s) :** ${document.getElementById('a-assist').value || 'Aucun'}\n**Date Décès :** ${document.getElementById('a-date').value}\n**Autopsie :** ${document.getElementById('a-h-deb').value} à ${document.getElementById('a-h-fin').value}\n**Lésions :** ${Array.from(activeParts.a).join(', ')}\n**Nature :** ${document.getElementById('a-nature').value}\n**Proches prévenus :** ${document.getElementById('a-ice-name').value || 'Non'}\n**Observations :** ${document.getElementById('a-obs').value}\n**Détails :** ${document.getElementById('a-large').value}`;
+            }
+
+            if(type === 'consultation') {
+                const cType = document.getElementById('cons-type').value;
+                t = `>>> **[DOSSIER DE CONSULTATION]**\n**Patient :** ${nom}\n**Médecin :** ${med}\n`;
+                
+                if(cType === 'c-gen') {
+                    t += `**Type :** Médecine Générale\n**Motif :** ${document.getElementById('cg-motif').value}\n**Heures :** ${document.getElementById('cg-h1').value} - ${document.getElementById('cg-h2').value}\n`;
+                    if(document.getElementById('chk-irm').checked) t += `• IRM/Scanner : ${document.getElementById('cg-irm').value}\n`;
+                    if(document.getElementById('chk-rad').checked) t += `• Radio : ${document.getElementById('cg-rad').value}\n`;
+                    if(document.getElementById('chk-ech').checked) t += `• Echo : ${document.getElementById('cg-ech').value}\n`;
+                    if(document.getElementById('chk-lab').checked) t += `• Labo : ${document.getElementById('cg-lab').value}\n`;
+                } else if(cType === 'c-psy1') {
+                    t += `**Type :** 1ère Consultation Psy\n**Motif :** ${document.getElementById('cp1-motif').value}\n**Vécu :** ${document.getElementById('cp1-vecu').value}\n**Recommandations :** ${document.getElementById('cp1-reco').value}\n**Suivi :** ${document.getElementById('cp1-next-date').value || 'Aucun prévu'}\n`;
+                } else if(cType === 'c-psys') {
+                    t += `**Type :** Consultation Psy Suivie\n**Dernier RDV :** ${document.getElementById('cps-last').value}\n**État :** ${document.getElementById('cps-etat').value}\n**Action :** ${document.querySelector('input[name="cps-action"]:checked')?.value || '/'}\n**Prochain RDV :** ${document.getElementById('cps-next').value}\n`;
+                } else if(cType === 'c-apt') {
+                    t += `**Type :** Aptitude au Travail\n**Motif arrêt :** ${document.getElementById('ca-motif-stop').value}\n**Décision :** ${document.querySelector('input[name="ca-dec"]:checked')?.value || '/'}\n`;
+                    t += `**Date mentionnée :** ${document.getElementById('ca-v-date').value || document.getElementById('ca-n-date').value || 'N/A'}\n`;
+                }
+                t += `**Observations :** ${document.getElementById('cons-obs').value}`;
+            }
+
+            if(type === 'arret') {
+                t = `>>> **[ARRÊT DE TRAVAIL / L.S.M.S.]**\n**Patient :** ${document.getElementById('w-nom').value}\n**Poste :** ${document.getElementById('w-fonc').value}\n**Médecin :** ${document.getElementById('w-med-grade').value}\n**Date PC :** ${document.getElementById('w-date-pc').value}\n**Période :** Du ${document.getElementById('w-d1').value} au ${document.getElementById('w-d2').value}\n**Heure début :** ${document.getElementById('w-h-start').value}\n**Motif :** ${document.getElementById('w-obs').value}\n**Reprise :** ${document.getElementById('w-reprise-date').value || 'Libre'}`;
+            }
+
+            if(type === 'audit') {
+                t = `>>> **[RAPPORT D'AUDIT SANITAIRE]**\n**Entreprise :** ${document.getElementById('au-ent').value}\n**Contact :** ${document.getElementById('au-pers').value}\n**Référent Audit :** ${document.getElementById('au-ref').value}\n**Accompagnants :** ${document.getElementById('au-acc').value || 'Aucun'}\n**Motif :** ${document.getElementById('au-motif').value}\n\n**NOTES :**\n• Hygiène : ${document.getElementById('au-n1').value}/10\n• Sécurité : ${document.getElementById('au-n2').value}/10\n• Conditions : ${document.getElementById('au-n3').value}/10\n⭐ **MOYENNE : ${document.getElementById('au-moy').innerText}/10**\n\n**Témoignages :** ${document.getElementById('au-tem').value}\n**Annotations :** ${document.getElementById('au-obs').value}`;
+            }
+
+            if(type === 'dossier') {
+                t = `>>> **[CRÉATION DOSSIER MÉDICAL]**\n**Identité :** ${document.querySelector('input[name="d-civ"]:checked')?.value || ''} ${document.getElementById('d-nom-v').value} ${document.getElementById('d-pre').value}\n**Physique :** ${document.getElementById('d-age').value} ans | ${document.getElementById('d-taille').value} cm | ${document.getElementById('d-poids').value} kg\n**Groupe :** ${document.getElementById('d-sang').value}\n**Contact :** ${document.getElementById('d-tel').value}\n**ICE :** ${document.getElementById('d-ice-n').value} (${document.getElementById('d-ice-t').value})\n**Allergies :** ${document.getElementById('d-allergies').value || 'Aucune'}\n**Antécédents :** ${document.getElementById('d-ante').value}\n**Notes :** ${document.getElementById('d-obs').value}\n💰 **Frais dossier : 300 $**`;
+            }
+
+            const out = document.getElementById('output');
+            out.innerText = t; out.style.display = 'block';
+            navigator.clipboard.writeText(t); 
+            alert("Formulaire copié avec succès !");
+        }
+    </script>
+</body>
+</html>
